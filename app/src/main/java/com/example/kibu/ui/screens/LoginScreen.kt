@@ -15,6 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -33,6 +34,7 @@ fun LoginScreen(
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var errorMessage by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
@@ -50,15 +52,50 @@ fun LoginScreen(
         KibuInputGroup(
             email = email,
             password = password,
-            onEmailChange = { email = it },
-            onPasswordChange = { password = it }
+            onEmailChange = {
+                email = it
+                errorMessage = ""
+            },
+            onPasswordChange = {
+                password = it
+                errorMessage = ""
+            }
         )
+
+        if (errorMessage.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Text(
+                text = errorMessage,
+                color = Color.Red,
+                fontSize = 14.sp
+            )
+        }
 
         Spacer(modifier = Modifier.height(20.dp))
 
         KibuButton(
             text = "Log in",
-            onClick = onLoginClick
+            onClick = {
+                when {
+                    email.isBlank() -> {
+                        errorMessage = "Ingresa tu correo electrónico"
+                    }
+
+                    password.isBlank() -> {
+                        errorMessage = "Ingresa tu contraseña"
+                    }
+
+                    !email.contains("@") -> {
+                        errorMessage = "Ingresa un correo válido"
+                    }
+
+                    else -> {
+                        errorMessage = ""
+                        onLoginClick()
+                    }
+                }
+            }
         )
 
         Spacer(modifier = Modifier.height(20.dp))

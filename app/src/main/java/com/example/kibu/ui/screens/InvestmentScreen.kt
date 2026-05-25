@@ -65,7 +65,7 @@ fun InvestmentScreen(
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "Desde el equipo de\ntenemos que decirte algo...",
+                    text = "Desde el equipo de Kibu \ntenemos que decirte algo...",
                     color = Color(0xFF2C2C2C),
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Bold,
@@ -74,7 +74,7 @@ fun InvestmentScreen(
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                KibuSmallLogo()
+
             }
 
             Spacer(modifier = Modifier.height(24.dp))

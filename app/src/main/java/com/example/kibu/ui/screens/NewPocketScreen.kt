@@ -1,22 +1,45 @@
 package com.example.kibu.ui.screens.savings
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.kibu.ui.theme.*
+import com.example.kibu.ui.theme.KibuGray
+import com.example.kibu.ui.theme.KibuGreen
+import com.example.kibu.ui.theme.KibuWhite
 
 @Composable
 fun NewPocketScreen(
@@ -74,8 +97,24 @@ fun NewPocketScreen(
                 },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                leadingIcon = {
+                    Text("$")
+                },
+                placeholder = {
+                    Text("Ej: 1500000")
+                }
             )
+
+            if (goalText.isNotBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "Meta ingresada: ${formatMoney(goal)}",
+                    color = KibuGray,
+                    fontSize = 13.sp
+                )
+            }
 
             Spacer(modifier = Modifier.height(14.dp))
 
@@ -89,7 +128,10 @@ fun NewPocketScreen(
 
                 Switch(
                     checked = autoSaving,
-                    onCheckedChange = { autoSaving = it },
+                    onCheckedChange = {
+                        autoSaving = it
+                        errorMessage = ""
+                    },
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = KibuWhite,
                         checkedTrackColor = KibuGreen
@@ -101,10 +143,11 @@ fun NewPocketScreen(
 
             FieldLabel("¿Con qué frecuencia deseas ahorrar?")
 
-            SelectMock(
-                text = frequency,
-                onClick = {
-                    frequency = if (frequency == "Semanal") "Mensual" else "Semanal"
+            FrequencyDropdown(
+                selectedFrequency = frequency,
+                onFrequencySelected = { selected ->
+                    frequency = selected
+                    errorMessage = ""
                 }
             )
 
@@ -112,12 +155,32 @@ fun NewPocketScreen(
 
             FieldLabel("¿Cuánto?")
 
-            SelectMock(
-                text = formatMoney(autoAmount),
-                onClick = {
-                    autoAmountText = if (autoAmountText == "100000") "50000" else "100000"
+            OutlinedTextField(
+                value = autoAmountText,
+                onValueChange = { value ->
+                    autoAmountText = value.filter { char -> char.isDigit() }
+                    errorMessage = ""
+                },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                leadingIcon = {
+                    Text("$")
+                },
+                placeholder = {
+                    Text("Ej: 100000")
                 }
             )
+
+            if (autoAmountText.isNotBlank()) {
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "Valor ingresado: ${formatMoney(autoAmount)}",
+                    color = KibuGray,
+                    fontSize = 13.sp
+                )
+            }
 
             if (errorMessage.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(10.dp))
@@ -134,10 +197,21 @@ fun NewPocketScreen(
             Button(
                 onClick = {
                     when {
-                        name.isBlank() -> errorMessage = "Ingresa el nombre del bolsillo"
-                        goal <= 0 -> errorMessage = "Ingresa una meta válida"
-                        autoSaving && autoAmount <= 0 -> errorMessage = "Ingresa un valor de autoahorro válido"
-                        else -> showSuccessDialog = true
+                        name.isBlank() -> {
+                            errorMessage = "Ingresa el nombre del bolsillo"
+                        }
+
+                        goal <= 0 -> {
+                            errorMessage = "Ingresa una meta válida"
+                        }
+
+                        autoSaving && autoAmount <= 0 -> {
+                            errorMessage = "Ingresa un valor de autoahorro válido"
+                        }
+
+                        else -> {
+                            showSuccessDialog = true
+                        }
                     }
                 },
                 modifier = Modifier
@@ -187,7 +261,7 @@ fun NewPocketScreen(
 
                             onPocketCreated(
                                 SavingPocket(
-                                    name = name,
+                                    name = name.trim(),
                                     goal = goal,
                                     currentAmount = 0,
                                     autoSaving = autoSaving,
@@ -205,5 +279,72 @@ fun NewPocketScreen(
             },
             confirmButton = {}
         )
+    }
+}
+
+@Composable
+private fun FrequencyDropdown(
+    selectedFrequency: String,
+    onFrequencySelected: (String) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    val options = listOf(
+        "Diario",
+        "Semanal",
+        "Quincenal",
+        "Mensual"
+    )
+
+    Box(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .border(
+                    width = 1.dp,
+                    color = Color(0xFF9EA0A5),
+                    shape = RoundedCornerShape(7.dp)
+                )
+                .clickable {
+                    expanded = true
+                }
+                .padding(horizontal = 12.dp),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            Text(
+                text = selectedFrequency,
+                color = Color.Black,
+                fontSize = 20.sp
+            )
+
+            Text(
+                text = "⌄",
+                color = Color.Black,
+                fontSize = 26.sp,
+                modifier = Modifier.align(Alignment.CenterEnd)
+            )
+        }
+
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = {
+                expanded = false
+            }
+        ) {
+            options.forEach { option ->
+                DropdownMenuItem(
+                    text = {
+                        Text(option)
+                    },
+                    onClick = {
+                        onFrequencySelected(option)
+                        expanded = false
+                    }
+                )
+            }
+        }
     }
 }
